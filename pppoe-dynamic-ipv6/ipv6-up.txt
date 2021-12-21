@@ -1,0 +1,20 @@
+#Turn on IPv6 if PPPoE is up
+{
+#WAN IF name
+:local wanif "digi-pppoe"
+#LAN IF name
+:local desiredif "br-lan"
+#IPv6 pool
+:local poolname "digi"
+#Check WAN IF status
+#If connected
+/interface/pppoe-client/monitor $wanif once do={ :if ($status= "connected") do={
+    # Restart DHCPv6 client \
+    :execute [/ipv6/dhcp-client/disable [find interface="$wanif"]]; \
+    :execute [/ipv6/dhcp-client/enable [find interface="$wanif"]]; \
+    # Check IPv6 interface state \
+    :local state [/ipv6/address get [find from-pool=$poolname interface=$desiredif] disabled]; \
+    # If disabled, turn it on and turn advertise on \
+    :if ($state = true) do={:execute [/ipv6/address/enable [find interface=$desiredif from-pool=$poolname]]; :execute [/ipv6/address/set [find interface=$desiredif from-pool=$poolname] advertise=yes];}; \
+    }; }
+}
