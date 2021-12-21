@@ -1,0 +1,30 @@
+#Dynamic IPv6 firewall
+{
+#machines in array (required second part off the address, EUI64, must not be random)
+:local machines ({"client1"="abcd:cbda:1234:4321", "client2"="abcd:cbda:1234:4321"})
+#Settings
+#IPv6 pool:
+:local poolname "digi"
+:local desiredif "br-lan"
+:local pppoeif "digi-pppoe"
+#Do not modify from here!
+#Check if initial state is set
+:if (:typeof $ipv6address = nil) do={:global ipv6address "::1/64"}
+#Get the new IPv6 address
+:local newipv6address [/ipv6/address/get [find from-pool=$poolname interface=$desiredif] address]
+#Define local var for prefix
+:local ip6prefix
+#When new IPv6 seems to be valid, and not equals with the old
+:if (($newipv6address != "::1/64") && ($newipv6address != $ipv6address)) do={ \
+    #Set new IPv6 \
+    :set $ipv6address "$newipv6address"; \
+    #Set the new prefix (temporarily, does not required after the script) \
+    :set $ipv6prefix [tostr [pick $ipv6address 0 [find $ipv6address "::1/"]]]; \
+    :log info "Dynamic IPv6 firewall: New IPv6 address detected. New address is: $ipv6address on interface $desiredif from pool $poolname"; \
+    }
+#If the prefix variable is not NIL (that means undefined), we restart IPv6 and set address-lists for devices
+:if (:typeof $ipv6prefix != nil) do={ \
+    :log info "Dynamic IPv6 firewall: Setting up the new addresses on addresslist to make the devices available from outside"; \
+    :foreach k,v in $machines do={:execute [/ipv6/firewall/address-list/remove [find list="$k"]]; :execute [/ipv6/firewall/address-list/add list="$k" address=($ipv6prefix.":".$v) timeout="10w"]}; \
+    }
+}
