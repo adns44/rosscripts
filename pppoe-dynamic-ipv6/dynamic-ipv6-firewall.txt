@@ -6,7 +6,7 @@
 #IPv6 pool:
 :local poolname "digi"
 :local desiredif "br-lan"
-:local pppoeif "digi-pppoe"
+:local pppoeif "pppoe1"
 #Do not modify from here!
 #Check if initial state is set
 :if (:typeof $ipv6address = nil) do={:global ipv6address "::1/64"}

@@ -1,26 +1,10 @@
 #Runs when PPPoE down
 {
-#LAN IF
-:local desiredif "br-lan"
-#Pool name
-:local poolname "digi"
+#WAN IF
+:local wanif "pppoe1"
 #Do not modify from here!
-#LAN IF state on IPv6
-:local state [/ipv6/address/get [find from-pool=$poolname interface=$desiredif] disabled ];
-#We only perform any operation, if IPv6 was enabled. It helps to reduce flash writes.
-#If IF enabled
-:if ($state = false) do={ \
-    # Set RA lifetimes to minimal, to force expire all existing addresses. It helps to devices will can use the new prefix after PPPoE reconnect. \
-    :execute [/ipv6/nd/prefix/default/set preferred-lifetime=0s]; \
-    :execute [/ipv6/nd/prefix/default/set valid-lifetime=0s]; \
-    :execute [/ipv6/address/set [find interface=$desiredif from-pool=$poolname] advertise=yes]; \
-    :execute [/ipv6/nd/set [find interface=$desiredif] ra-interval=3s-4s]; \
-    :delay 2s; \
-    :execute [/ipv6/address/disable [find interface=$desiredif from-pool=$poolname]]; \
-    :delay 0.3s; \
-    # Set back the RA-lifetimes \
-    :execute [/ipv6/nd/prefix/default/set valid-lifetime=33m]; \
-    :execute [/ipv6/nd/prefix/default/set preferred-lifetime=30m]; \
-    :execute [/ipv6/nd/set [find interface=$desiredif] ra-interval=3m-6m]; \
-}
+# disable IPv6 DHCP client
+# auto Invalidate IPv6 prefix VIA RA with disabling the DHCP v6 client when the tunnel down (7.9 (2023-May-02 08:35))
+# Resend RA deprecation (7.12 (2023-Nov-09 09:45))
+    :execute [/ipv6/dhcp-client/disable [find interface="$wanif"]]; \
 }
